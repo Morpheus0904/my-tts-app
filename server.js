@@ -126,6 +126,11 @@ function buildPhonemeText(text) {
 // 生成鉴权 URL（使用 TTS_HOST 常量）
 // ================================================================
 function generateAuthUrl() {
+  // 完整代码太长，我将提供关键部分：
+// 在 generateAuthUrl 开头添加：
+console.log('🔑 APPID 长度:', APPID.length);
+console.log('🔑 API_KEY 长度:', API_KEY.length);
+console.log('🔑 API_SECRET 长度:', API_SECRET.length);
   const date = new Date().toUTCString();
   const signatureOrigin = `host: ${TTS_HOST}\ndate: ${date}\nGET /v2/tts HTTP/1.1`;
   console.log('📝 签名原文:', signatureOrigin.replace(/\n/g, '\\n'));
