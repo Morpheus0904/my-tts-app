@@ -1,0 +1,13 @@
+{
+  "name": "pinyin-tts-proxy",
+  "version": "1.0.0",
+  "description": "讯飞语音合成代理服务 (幼小衔接拼音练习)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.0",
+    "ws": "^8.14.0"
+  }
+}

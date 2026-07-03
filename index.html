@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幼小衔接拼音天天练</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Comic Sans MS', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: #f0f7ff;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 30px;
+            padding: 24px 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+        h1 {
+            color: #4a2c1a;
+            border-bottom: 4px double #f0d5c0;
+            padding-bottom: 14px;
+            margin-bottom: 20px;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .day-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        .day-btn {
+            padding: 8px 18px;
+            border: 2px solid #dbb8a2;
+            border-radius: 30px;
+            background: #fdf7f2;
+            font-weight: 600;
+            color: #4a3525;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .day-btn.active {
+            background: #e8825a;
+            color: #fff;
+            border-color: #e8825a;
+        }
+        .day-btn:hover { transform: scale(1.05); }
+        .content { min-height: 400px; }
+        .pinyin-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 18px;
+            padding: 16px 18px;
+            background: #faf6f0;
+            border-radius: 20px;
+            margin-bottom: 16px;
+            border: 1px solid #eee0d4;
+        }
+        .pinyin-item {
+            font-size: 30px;
+            font-weight: 600;
+            color: #2d1a0e;
+            padding: 6px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            background: rgba(255,255,255,0.6);
+            border: 2px solid transparent;
+            transition: all 0.15s;
+            user-select: none;
+        }
+        .pinyin-item:hover {
+            background: #ffe8dc;
+            border-color: #e8825a;
+            transform: scale(1.1);
+        }
+        .pinyin-item.speaking {
+            animation: pulse 0.5s ease-in-out 3;
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(232,130,90,0); }
+            50% { box-shadow: 0 0 20px 8px rgba(232,130,90,0.35); }
+        }
+        .word-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 20px;
+            padding: 12px 16px;
+            background: #f5f9ee;
+            border-radius: 18px;
+            margin-bottom: 12px;
+        }
+        .word-item {
+            font-size: 24px;
+            font-weight: 600;
+            padding: 6px 18px;
+            background: #e3f0fa;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+        .word-item:hover {
+            background: #c5def5;
+            transform: scale(1.05);
+        }
+        .sentence {
+            font-size: 22px;
+            line-height: 1.8;
+            padding: 12px 20px;
+            background: #f5f0eb;
+            border-radius: 16px;
+            margin: 8px 0;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .sentence:hover { background: #e8ddd2; }
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #5a3e2b;
+            margin: 18px 0 10px 0;
+            padding-left: 12px;
+            border-left: 6px solid #e8825a;
+            cursor: pointer;
+        }
+        .compare-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px 24px;
+            padding: 12px 18px;
+            background: #f5f0eb;
+            border-radius: 18px;
+            margin: 8px 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .compare-group .pinyin-item { font-size: 24px; }
+        .poem-block {
+            background: #faf3e8;
+            border-radius: 24px;
+            padding: 20px 28px;
+            margin: 12px 0;
+            border: 2px solid #e8d5c0;
+        }
+        .poem-line {
+            font-size: 26px;
+            line-height: 2;
+            color: #3d261a;
+            padding: 2px 0;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .poem-line:hover {
+            background: #f5e6d8;
+            border-radius: 8px;
+            padding-left: 8px;
+        }
+        .status-bar {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #888;
+            text-align: center;
+            border-top: 1px solid #eee;
+            padding-top: 16px;
+        }
+        .nav-hint {
+            font-size: 14px;
+            background: #fff3e6;
+            padding: 6px 16px;
+            border-radius: 30px;
+            color: #a86a4a;
+        }
+        @media (max-width: 600px) {
+            .container { padding: 16px; }
+            .pinyin-item { font-size: 24px; padding: 4px 10px; }
+            .word-item { font-size: 20px; padding: 4px 12px; }
+            .sentence { font-size: 18px; }
+            .poem-line { font-size: 20px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📚 幼小衔接拼音天天练 <span class="nav-hint">点击发音 · 后端TTS代理</span></h1>
+    <div class="day-tabs" id="dayTabs"></div>
+    <div class="content" id="content"></div>
+    <div class="status-bar">🔊 语速偏慢 · 清晰发音 · 部署于 Render</div>
+</div>
+
+<script>
+    // ================================================================
+    // 1. 完整14天数据
+    // ================================================================
+    const DAYS = {
+        1: {
+            title: 'a o e i u ü',
+            sections: [
+                { type: 'title', text: '一、读一读，要求快速准确地读' },
+                { type: 'pinyin', items: ['ǔ','á','í','ò','ǚ','ǜ','ǘ','è','á','ǐ','ó','ǜ','è','ù','ǎ','ī','ǚ','ǒ','ē','ì','à','ū','ō','ě','ǖ','ǔ','á','í','ò','ǚ','ǘ','è','á','ǐ','ó','ǜ','è','ǎ','ù','ī','ǚ','ǒ','ē','ì','à','ū','ō','ě','ǖ','ǜ'] },
+                { type: 'title', text: '二、读整体认读音节' },
+                { type: 'pinyin', items: ['yī','yí','yǐ','yì','yú','yī','wǔ','yì','wū','wú','wǔ','wù','wū','yǔ','wù','yí','yū','yú','yǔ','yù','yù','yǐ','yū','wú'] },
+                { type: 'title', text: '三、拼读词语' },
+                { type: 'words', items: ['yǔ yī 雨衣','ā yí 阿姨','wǔ yī 五一','wū yā 乌鸦'] }
+            ]
+        },
+        2: {
+            title: 'b p m f',
+            sections: [
+                { type: 'title', text: '一、读一读，要求快速准确地拼读' },
+                { type: 'pinyin', items: ['bā','pá','bō','pó','pǐ','bù','pū','mǎ','fà','fó','pí','pō','mō','mā','mǐ','fú','bà','mù','bǐ','pà','bà'] },
+                { type: 'title', text: '二、读词语' },
+                { type: 'words', items: ['bà ba 爸爸','pó po 婆婆','mā ma 妈妈','mù mǎ 木马','pí fū 皮肤','mì mì 秘密','mó mò 磨墨','pí pa 枇杷','pù bù 瀑布','yī fu 衣服','fǔ mō 抚摸','pá pō 爬坡'] }
+            ]
+        },
+        3: {
+            title: 'g k h',
+            sections: [
+                { type: 'title', text: '一、读一读，要求快速准确地拼读' },
+                { type: 'pinyin', items: ['gā','ká','hā','gē','kè','hé','gǔ','kū','hú','guā','huà','huǒ','gá','hé','kū','gē','hǔ','hè','gé','kǔ','gě','gǔ','kè','gù','kǎ','gè','gū','kē','kù','hù','hè','hū'] },
+                { type: 'title', text: '二、读词语' },
+                { type: 'words', items: ['mó gū 蘑菇','gē ge 哥哥','dǎ hǔ 大虎','gū mā 姑妈','kū le 哭了','hú li 狐狸','lǚ kè 旅客','tuō dì 拖地','huá tī 滑梯','guā guǒ 瓜果','luò tuo 骆驼','kǔ guā 苦瓜'] }
+            ]
+        },
+        4: {
+            title: 'j q x',
+            sections: [
+                { type: 'title', text: '一、读一读，要求快速准确地拼读' },
+                { type: 'pinyin', items: ['jī','qǐ','xì','xū','jù','qù','qū','xú','jiā','qià','qǔ','xiā','jiǎ','jǔ','qí','xí','jì','nǔ','xǐ','qì','jǔ','xì','jí','qù','xū','qǔ','xú','xià'] },
+                { type: 'title', text: '二、读词语' },
+                { type: 'words', items: ['mǔ jī 母鸡','jī qì 机器','mǎ xì 马戏','hé qì 和气','qǐ lì 起立','jǐ gè 几个','gē qǔ 歌曲','dǎ qì 打气','hú xū 胡须','qí mǎ 骑马','pá pō 爬坡','xī guā 西瓜','dā jī mù 搭积木','xǐ yī fu 洗衣服'] }
+            ]
+        },
+        5: {
+            title: 'zh ch sh r',
+            sections: [
+                { type: 'title', text: '一、读一读，要求快速准确地拼读' },
+                { type: 'pinyin', items: ['zhà','zhé','chē','shā','zhǔ','zhè','chū','shé','chà','shā','shě','shé','shú','rì','shǔ','rè','rú','shū','huà','shuō','zhuō','shuò','zhuā','zhī'] },
+                { type: 'title', text: 'z-zh  c-ch  s-sh' },
+                { type: 'pinyin', items: ['z-zi','c-ci','s-si','zh-zhi','ch-chi','sh-shi'] },
+                { type: 'title', text: '二、读词语' },
+                { type: 'words', items: ['là zhú 蜡烛','hē chá 喝茶','shā fā 沙发','zhī bù 织布','zhī zhù 支柱','chǐ zī 尺子','rì zi 日子','shī zi 狮子','zhī zhū 蜘蛛','mǎ chē 马车','dú shū 读书','shuō huà 说话'] }
+            ]
+        },
+        6: {
+            title: 'z c s',
+            sections: [
+                { type: 'title', text: '一、读一读，要求快速准确地拼读' },
+                { type: 'pinyin', items: ['zī','cì','sì','sì','zǔ','cè','sā','cā','cù','sù','zē','sē','zā','sī','sè','zì','sǐ','cí','sǐ','zá','cū','zuó','sǎ','zǔ','cā','zé','sè','zā','zuō','zuò','cuō','suǒ','tuō','guò','guā','zā'] },
+                { type: 'title', text: '二、读词语' },
+                { type: 'words', items: ['zǔ fù 祖父','cū xì 粗细','sī jī 司机','zì mǔ 字母','dǎ zì 打字','cū bù 粗布','zá jì 杂技','xiě zì 写字','zuò xià 坐下','lǜ sè 绿色','tuō dì 拖地','sī guā 丝瓜','gē ge 哥哥','dú zì mǔ 读字母','cā bō li 擦玻璃'] }
+            ]
+        },
+        7: {
+            title: 'y w',
+            sections: [
+                { type: 'title', text: '一、读一读，要求快速准确地拼读' },
+                { type: 'pinyin', items: ['yī','yú','yè','yǔ','yù','wū','wá','wǒ','wù','wō','yǐ','wò','wò','yǔ','yú','wǔ','wǒ','yǎ','wù','wá'] },
+                { type: 'title', text: '二、读词语' },
+                { type: 'words', items: ['yī fu 衣服','yú ěr 鱼饵','yè zi 叶子','yǔ sǎn 雨伞','yù mǐ 玉米','wū yā 乌鸦','wá wa 娃娃','wǒ men 我们','wù pǐn 物品','wō niú 蜗牛'] }
+            ]
+        },
+        8: {
+            title: 'ai ei ui',
+            sections: [
+                { type: 'title', text: '一、读一读，要求快速准确地拼读' },
+                { type: 'pinyin', items: ['bái','mǎi','tái','cài','léi','méi','gài','guī','kuí','huí','duī','tuǐ','pái','wèi','tuī','gěi','fēi','lài','lái','léi','nǎi','něi','bāi','bēi'] },
+                { type: 'title', text: '二、读词语' },
+                { type: 'words', items: ['tuī chē 推车','huí lái 回来','dǎ léi 打雷','qǐ lái 起来','shuǐ guǒ 水果','kāi chē 开车','pái duì 排队','tái shuǐ 抬水','wū guī 乌龟','tǔ duī 土堆','fēi jī 飞机','mèi mei 妹妹','bái cài 白菜','méi huā 梅花','dǎ kāi 打开','gē maì zi 割麦子','tí shuǐ hú 提水壶'] }
+            ]
+        },
+        9: {
+            title: 'ao ou iu',
+            sections: [
+                { type: 'title', text: '一、读一读，要求快速准确地拼读' },
+                { type: 'pinyin', items: ['bǎo','táo','shǎo','rào','tóu','gǒu','lòu','zhōu','jiǔ','xiū','lǎo','dǒu','chou','liú','jiao','liǎo','niǎo','biǎo','piào','gāo','gōu','kǎo','kǒu','zǒu','zuǒ','gāo','dà','cāo','kǒu','shì','xiǎo','qiáo','zi','kǎo','gōu'] },
+                { type: 'title', text: '二、读词语' },
+                { type: 'words', items: ['shū bāo 书包','dà dòu 大豆','wō niú 蜗牛','pú tao 葡萄','hēi gǒu 黑狗','zǎo cāo 早操','bái māo 白猫','jiǔ cài 韭菜','tái tóu 抬头','niú nǎi 牛奶','yòu shǒu 右手','shòu táo 寿桃','xiū xi 休息','pí qiú 皮球','lǎo shī 老师','shuǐ jiao 水饺','shuì jiao 睡觉','bāo zi 包子','bào zhǐ 报纸','táo zi 桃子'] }
+            ]
+        },
+        10: {
+            title: 'ie üe er',
+            sections: [
+                { type: 'title', text: '一、读一读，要求快速准确地拼读' },
+                { type: 'pinyin', items: ['biē','piē','miē','diē','tiē','niē','jié','qié','xié','bǐ','jié','pī','jué','qué','xué','lǜe','nǜe','ěr','jié','ér','mī','èr','liē','yuè','biē','piē','diē','tiē','niē','liē','qié','xié','jié','jué','qué','jié','xué','lǜe','nǜe','ěr','ér','ěr'] },
+                { type: 'title', text: '二、读词语' },
+                { type: 'words', items: ['jiè zhi 戒指','xiě zì 写字','dié zi 碟子','tiě guō 铁锅','niè shǒu niè jiǎo 蹑手蹑脚','yuè liàng 月亮','jué xīn 决心','xuě huā 雪花','lǜe duó 掠夺','nǜe dài 虐待','ěr duo 耳朵','ér qiě 而且','èr shí 二十','ěr jī 耳机','huā ér 花儿'] }
+            ]
+        },
+        11: {
+            title: 'an en in',
+            sections: [
+                { type: 'title', text: '一、读一读，要求快速准确地拼读' },
+                { type: 'pinyin', items: ['bàn','dān','zhàn','fēn','zěn','kěn','shēn','qīn','yǐn','rán','chēn','biǎn','piàn','miàn','tián','niǎn','juàn','quān','xuàn','shuān','chuán'] },
+                { type: 'title', text: '二、比一比' },
+                { type: 'compare', items: ['gān---gāi','bēi---bēn','kān---kuān','guān---quān','xiàn---xuàn','dān---pān'] },
+                { type: 'title', text: '三、读词语和句子' },
+                { type: 'words', items: ['pá shān 爬山','kè běn 课本','bèi xīn 背心','tiān ān mén 天安门','jīn tiān 今天','hēi bǎn 黑板','bēn pǎo 奔跑','yóu yìn 油印','shù lín 树林','pá shān 爬山','dǎ zhēn 打针','nán guā 南瓜'] },
+                { type: 'sentence', items: ['wǒ měi tiān dōu qù pá shān。','wǒ ài tiān ān mén。','wǒ men ài dú yǔ wén kè běn。'] }
+            ]
+        },
+        12: {
+            title: 'un ün yun yuan',
+            sections: [
+                { type: 'title', text: '一、读一读，要求快速准确地拼读' },
+                { type: 'pinyin', items: ['dūn','gùn','zhǔn','lún','tūn','hūn','chūn','shùn','sūn','jūn','nǚ','qún','xùn','yūn','yuán','yuǎn','yùn','duān'] },
+                { type: 'title', text: '二、读词语和句子' },
+                { type: 'words', items: ['chē lún 车轮','yuán quān 圆圈','xīn yuàn 心愿','gùn zi 棍子','yuan zi 院子','zhú sǔn 竹笋','qún zi 裙子','bái yún 白云','yùn mǔ 韵母','lán tiān 蓝天','jūn duì 军队','huā yuan 花园','wén zi 蚊子','chūn tiān 春天','jī dàn 鸡蛋','kùn nán 困难','lún chuán 轮船','piān yuan 偏远','cūn zi 村子','dǎ quán 打拳'] },
+                { type: 'sentence', items: ['tiān kōng zhōng piāo zhe bái yún。','wǒ men xiāo miè wén zi。','wǒ men yào rèn zhēn xué hǎo hàn yǔ pīn yīn。'] }
+            ]
+        },
+        13: {
+            title: 'ang eng ing ong ying',
+            sections: [
+                { type: 'title', text: '一、读一读，要求快速准确地拼读' },
+                { type: 'pinyin', items: ['bàng','gang','máng','làng','fàng','zhāng','dèng','héng','cēng','dōng','lónɡ','zhōng','chōng','yíng','sǒnɡ','róng','guàng','chuáng'] },
+                { type: 'title', text: '二、读词语和句子' },
+                { type: 'words', items: ['lǎo yīng 老鹰','dà niáng 大娘','mì fēng 蜜蜂','fang xué 放学','shuǐ tǒng 水桶','gong chǎng 工厂','nóng mín 农民','cāng ying 苍蝇','xué shēng 学生','léi fēng 雷锋','hóng qí 红旗','jiě fàng jūn 解放军'] },
+                { type: 'sentence', items: ['wǒ men qù shàng xué。','lǎo yīng zhuā xiǎo jī。','lǎo shī shì xīn qín de yuán dīng。'] }
+            ]
+        },
+        14: {
+            title: '综合练习',
+            sections: [
+                { type: 'title', text: '一、读一读，要求快速准确地拼读' },
+                { type: 'poem', lines: ['jiāng nán hǎo','fēng jǐng jiù céng ān','rì chū jiāng huā hóng shèng huǒ','chūn lái jiāng shuǐ lǜ rú lán','néng bù yì jiāng nán?'] },
+                { type: 'title', text: '二、拼读古诗' },
+                { type: 'poem', lines: ['江南好，','风景旧曾谙。','日出江花红胜火，','春来江水绿如蓝。','能不忆江南？'] }
+            ]
+        }
+    };
+
+    // ================================================================
+    // 2. 发音函数（调用后端 /tts 接口）
+    // ================================================================
+    async function speakPinyin(text) {
+        if (!text) return;
+        try {
+            const resp = await fetch(`/tts?text=${encodeURIComponent(text)}`);
+            if (!resp.ok) {
+                const errText = await resp.text();
+                alert('发音失败: ' + errText);
+                return;
+            }
+            const arrayBuffer = await resp.arrayBuffer();
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+            const source = audioCtx.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(audioCtx.destination);
+            source.start();
+        } catch (err) {
+            console.error('发音错误:', err);
+            alert('发音失败，请检查网络或服务器状态');
+        }
+    }
+
+    // ================================================================
+    // 3. 渲染引擎
+    // ================================================================
+    let currentDay = 1;
+
+    function renderDay(dayNum) {
+        const data = DAYS[dayNum];
+        if (!data) return;
+        const container = document.getElementById('content');
+        let html = `<h2 style="color:#4a2c1a;margin-bottom:16px;">第${dayNum}天 · ${data.title}</h2>`;
+
+        for (const sec of data.sections) {
+            if (sec.type === 'title') {
+                html += `<div class="section-title" onclick="speakPinyin('${sec.text}')">${sec.text}</div>`;
+            } else if (sec.type === 'pinyin') {
+                html += `<div class="pinyin-grid">`;
+                for (const item of sec.items) {
+                    html += `<span class="pinyin-item" onclick="speakPinyin('${item}')">${item}</span>`;
+                }
+                html += `</div>`;
+            } else if (sec.type === 'words') {
+                html += `<div class="word-group">`;
+                for (const w of sec.items) {
+                    const parts = w.split(' ');
+                    const meaning = parts.pop();
+                    const pinyin = parts.join(' ');
+                    html += `<span class="word-item" onclick="speakPinyin('${pinyin}')">${w}</span>`;
+                }
+                html += `</div>`;
+            } else if (sec.type === 'compare') {
+                html += `<div class="compare-group">`;
+                for (const item of sec.items) {
+                    const parts = item.split('---');
+                    for (const p of parts) {
+                        html += `<span class="pinyin-item" onclick="speakPinyin('${p}')">${p}</span>`;
+                    }
+                    html += `<span style="color:#b08870;font-weight:400;">&nbsp;|&nbsp;</span>`;
+                }
+                html += `</div>`;
+            } else if (sec.type === 'sentence') {
+                for (const s of sec.items) {
+                    html += `<div class="sentence" onclick="speakPinyin('${s}')">${s}</div>`;
+                }
+            } else if (sec.type === 'poem') {
+                html += `<div class="poem-block">`;
+                for (const line of sec.lines) {
+                    html += `<div class="poem-line" onclick="speakPinyin('${line}')">${line}</div>`;
+                }
+                html += `</div>`;
+            }
+        }
+
+        container.innerHTML = html;
+        document.querySelectorAll('.day-btn').forEach(btn => {
+            btn.classList.toggle('active', parseInt(btn.dataset.day) === dayNum);
+        });
+    }
+
+    function buildTabs() {
+        const tabs = document.getElementById('dayTabs');
+        let html = '';
+        for (let i = 1; i <= 14; i++) {
+            if (!DAYS[i]) continue;
+            const active = i === currentDay ? 'active' : '';
+            html += `<button class="day-btn ${active}" data-day="${i}">第${i}天</button>`;
+        }
+        tabs.innerHTML = html;
+        tabs.querySelectorAll('.day-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const day = parseInt(this.dataset.day);
+                currentDay = day;
+                renderDay(day);
+            });
+        });
+    }
+
+    buildTabs();
+    renderDay(1);
+    window.speakPinyin = speakPinyin;
+</script>
+</body>
+</html>
