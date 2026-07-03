@@ -6,17 +6,31 @@ const path = require('path');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// 环境变量
+// ================================================================
+// 环境变量（Render / Railway 中设置）
+//   APPID     = 40131eae
+//   API_KEY   = a3d82f6eca521d711f87c057e06d6bbf
+//   APISECRET = ZDlyzDg3OTQ3MTBhMjZkYzllYzQxNmMz
+// ================================================================
 const APPID = (process.env.APPID || '').trim();
 const API_KEY = (process.env.API_KEY || '').trim();
 const API_SECRET = (process.env.APISECRET || '').trim();
 
-// ===== 拼音映射表（完整，已包含全部14天） =====
+// ================================================================
+// 讯飞服务域名（⚠️ 请确保拼写为 xfyun，不是 xfyn 或 xyfun）
+// ================================================================
+const TTS_HOST = 'tts-api.xfyun.cn';
+
+// ================================================================
+// 拼音 → 汉字映射表（覆盖全部14天内容）
+// ================================================================
 const pinyinMap = {
+  // 单韵母 & 整体认读
   'a':'啊','o':'哦','e':'鹅','i':'衣','u':'乌','ü':'鱼',
   'ā':'阿','á':'啊','ǎ':'啊','à':'阿','ō':'喔','ó':'哦','ǒ':'哦','ò':'哦',
   'ē':'诶','é':'鹅','ě':'诶','è':'诶','ī':'衣','í':'姨','ǐ':'以','ì':'义',
   'ū':'乌','ú':'无','ǔ':'五','ù':'物','ǖ':'鱼','ǘ':'鱼','ǚ':'雨','ǜ':'玉',
+  // 声母+韵母常用字
   'bā':'八','bá':'拔','bǎ':'把','bà':'爸','bō':'波','pō':'坡','pó':'婆','pǒ':'叵',
   'mō':'摸','mó':'模','mǒ':'抹','mò':'墨','fó':'佛','mā':'妈','má':'麻','mǎ':'马','mà':'骂',
   'fā':'发','fá':'罚','fǎ':'法','fà':'发','dā':'搭','dá':'答','dǎ':'打','dà':'大',
@@ -30,6 +44,7 @@ const pinyinMap = {
   'yī':'衣','yí':'姨','yǐ':'以','yì':'义','wū':'乌','wú':'无','wǔ':'五','wù':'物',
   'yū':'淤','yú':'鱼','yǔ':'雨','yù':'玉','yē':'耶','yé':'椰','yě':'也','yè':'叶',
   'yuē':'约','yuè':'月','ér':'儿','ěr':'耳','èr':'二',
+  // 复韵母
   'bái':'白','mǎi':'买','tái':'台','cài':'菜','léi':'雷','méi':'梅','gài':'盖','guī':'归',
   'kuí':'奎','huí':'回','duī':'堆','tuǐ':'腿','pái':'排','wèi':'位','tuī':'推','gěi':'给',
   'fēi':'飞','lài':'赖','lái':'来','nǎi':'奶','něi':'哪','bēi':'杯','bǎo':'宝','táo':'桃',
@@ -58,6 +73,9 @@ const pinyinMap = {
   'léi':'雷','hóng':'红','qí':'旗','jiě':'解','fàng':'放'
 };
 
+// ================================================================
+// 工具函数：带声调拼音 → 数字声调格式（如 wǒ → wo3）
+// ================================================================
 function pinyinToToneNumber(py) {
   const toneMap = {
     'ā':'a1','á':'a2','ǎ':'a3','à':'a4',
@@ -84,6 +102,9 @@ function pinyinToToneNumber(py) {
   return result;
 }
 
+// ================================================================
+// 构建讯飞 phoneme 标签
+// ================================================================
 function buildPhonemeText(text) {
   const words = text.split(/\s+/);
   let result = '';
@@ -102,11 +123,11 @@ function buildPhonemeText(text) {
 }
 
 // ================================================================
-// 修正：域名拼写（xyfun → xfyun）
+// 生成鉴权 URL（使用 TTS_HOST 常量）
 // ================================================================
 function generateAuthUrl() {
   const date = new Date().toUTCString();
-  const signatureOrigin = `host: tts-api.xfyun.cn\ndate: ${date}\nGET /v2/tts HTTP/1.1`;
+  const signatureOrigin = `host: ${TTS_HOST}\ndate: ${date}\nGET /v2/tts HTTP/1.1`;
   console.log('📝 签名原文:', signatureOrigin.replace(/\n/g, '\\n'));
 
   const signature = crypto.createHmac('sha256', API_SECRET)
@@ -116,11 +137,14 @@ function generateAuthUrl() {
   const authorization = `api_key="${API_KEY}", algorithm="hmac-sha256", headers="host date request-line", signature="${signature}"`;
   console.log('🔑 Authorization 前100字符:', authorization.substring(0, 100));
 
-  const url = `wss://tts-api.xfyun.cn/v2/tts?authorization=${encodeURIComponent(authorization)}&date=${encodeURIComponent(date)}&host=tts-api.xfyun.cn`;
+  const url = `wss://${TTS_HOST}/v2/tts?authorization=${encodeURIComponent(authorization)}&date=${encodeURIComponent(date)}&host=${TTS_HOST}`;
   console.log('🌐 WebSocket URL (前150字符):', url.substring(0, 150) + '...');
   return url;
 }
 
+// ================================================================
+// 生成 WAV 文件头
+// ================================================================
 function createWavHeader(dataLength, sampleRate) {
   const header = Buffer.alloc(44);
   header.write('RIFF', 0);
@@ -139,6 +163,9 @@ function createWavHeader(dataLength, sampleRate) {
   return header;
 }
 
+// ================================================================
+// 核心路由：/tts
+// ================================================================
 app.get('/tts', (req, res) => {
   const text = req.query.text || '你好';
   console.log(`📢 收到发音请求: ${text}`);
@@ -238,14 +265,22 @@ app.get('/tts', (req, res) => {
   });
 });
 
+// ================================================================
+// 静态文件服务
+// ================================================================
 app.use(express.static(path.join(__dirname, 'public')));
+
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
 app.get('/test', (req, res) => {
   res.send('✅ 服务器运行正常！');
 });
 
+// ================================================================
+// 启动服务器
+// ================================================================
 app.listen(port, () => {
   console.log(`✅ 服务已启动: http://localhost:${port}`);
   console.log(`   - 前端: http://localhost:${port}`);
