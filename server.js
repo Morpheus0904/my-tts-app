@@ -6,19 +6,12 @@ const path = require('path');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// ================================================================
-// 环境变量（请确保 Render 中变量名完全匹配）
-//   APPID     = 40131eae
-//   API_KEY   = a3d82f6eca521d711f87c057e06d6bbf
-//   APISECRET = ZDlyzDg3OTQ3MTBhMjZkYzllYzQxNmMz
-// ================================================================
+// 环境变量
 const APPID = (process.env.APPID || '').trim();
 const API_KEY = (process.env.API_KEY || '').trim();
-const API_SECRET = (process.env.APISECRET || '').trim(); // 注意：变量名是 APISECRET
+const API_SECRET = (process.env.APISECRET || '').trim();
 
-// ================================================================
-// 拼音映射表（完整14天数据，已包含所有常用拼音）
-// ================================================================
+// ===== 拼音映射表（完整，已包含全部14天） =====
 const pinyinMap = {
   'a':'啊','o':'哦','e':'鹅','i':'衣','u':'乌','ü':'鱼',
   'ā':'阿','á':'啊','ǎ':'啊','à':'阿','ō':'喔','ó':'哦','ǒ':'哦','ò':'哦',
@@ -109,30 +102,25 @@ function buildPhonemeText(text) {
 }
 
 // ================================================================
-// 生成鉴权 URL（已修正 authorization 字符串）
+// 修正：域名拼写（xyfun → xfyun）
 // ================================================================
 function generateAuthUrl() {
   const date = new Date().toUTCString();
-  // ⚠️ 注意 host 必须为 tts-api.xfyun.cn（不要写成 fyun.cn）
   const signatureOrigin = `host: tts-api.xfyun.cn\ndate: ${date}\nGET /v2/tts HTTP/1.1`;
-  console.log('📝 签名原文（换行符已替换为 \\n）:', signatureOrigin.replace(/\n/g, '\\n'));
+  console.log('📝 签名原文:', signatureOrigin.replace(/\n/g, '\\n'));
 
   const signature = crypto.createHmac('sha256', API_SECRET)
       .update(signatureOrigin)
       .digest('base64');
 
-  // ✅ 正确拼接：key="value", algorithm=...  （注意逗号和空格）
   const authorization = `api_key="${API_KEY}", algorithm="hmac-sha256", headers="host date request-line", signature="${signature}"`;
-  console.log('🔑 Authorization 字符串（前100字符）:', authorization.substring(0, 100));
+  console.log('🔑 Authorization 前100字符:', authorization.substring(0, 100));
 
   const url = `wss://tts-api.xfyun.cn/v2/tts?authorization=${encodeURIComponent(authorization)}&date=${encodeURIComponent(date)}&host=tts-api.xfyun.cn`;
-  console.log('🌐 完整 WebSocket URL（前150字符）:', url.substring(0, 150) + '...');
+  console.log('🌐 WebSocket URL (前150字符):', url.substring(0, 150) + '...');
   return url;
 }
 
-// ================================================================
-// WAV 头生成
-// ================================================================
 function createWavHeader(dataLength, sampleRate) {
   const header = Buffer.alloc(44);
   header.write('RIFF', 0);
@@ -151,9 +139,6 @@ function createWavHeader(dataLength, sampleRate) {
   return header;
 }
 
-// ================================================================
-// 核心路由 /tts
-// ================================================================
 app.get('/tts', (req, res) => {
   const text = req.query.text || '你好';
   console.log(`📢 收到发音请求: ${text}`);
@@ -253,9 +238,6 @@ app.get('/tts', (req, res) => {
   });
 });
 
-// ================================================================
-// 静态文件服务
-// ================================================================
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
