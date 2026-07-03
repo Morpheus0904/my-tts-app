@@ -12,9 +12,15 @@ const port = process.env.PORT || 3000;
 //   API_KEY   = a3d82f6eca521d711f87c057e06d6bbf
 //   APISECRET = ZDlyzDg3OTQ3MTBhMjZkYzllYzQxNmMz
 // ================================================================
-const APPID = (process.env.APPID || '').trim();
-const API_KEY = (process.env.API_KEY || '').trim();
-const API_SECRET = (process.env.APISECRET || '').trim();
+
+// 临时测试（确认密钥有效）
+const APPID = '40131eae';
+const API_KEY = 'a3d82f6eca521d711f87c057e06d6bbf';
+const API_SECRET = 'ZDlyZDg3OTQ3MTBhMjZkYzllYzQxNmMz';
+
+//const APPID = (process.env.APPID || '').trim();
+//const API_KEY = (process.env.API_KEY || '').trim();
+//const API_SECRET = (process.env.APISECRET || '').trim();
 
 // 讯飞服务域名（请确保拼写为 xfyun，不是 xfyn 或 xyfun）
 const TTS_HOST = 'tts-api.xfyun.cn';
