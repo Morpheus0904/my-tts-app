@@ -6,7 +6,7 @@ const path = require('path');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// ===== 从环境变量读取讯飞密钥（Render 中设置） =====
+// ===== 从环境变量读取讯飞密钥（Render / Railway 中设置） =====
 const APPID = process.env.APPID;
 const API_KEY = process.env.API_KEY;
 const API_SECRET = process.env.APISECRET;
@@ -15,15 +15,10 @@ const API_SECRET = process.env.APISECRET;
 // 1. 拼音 → 汉字映射表（覆盖14天所有拼音）
 // ============================================================
 const pinyinMap = {
-  // 单韵母 & 整体认读
   'a':'啊','o':'哦','e':'鹅','i':'衣','u':'乌','ü':'鱼',
-  'ā':'阿','á':'啊','ǎ':'啊','à':'啊',
-  'ō':'喔','ó':'哦','ǒ':'哦','ò':'哦',
-  'ē':'诶','é':'鹅','ě':'诶','è':'诶',
-  'ī':'衣','í':'姨','ǐ':'以','ì':'义',
-  'ū':'乌','ú':'无','ǔ':'五','ù':'物',
-  'ǖ':'鱼','ǘ':'鱼','ǚ':'雨','ǜ':'玉',
-  // 声母+韵母常用字
+  'ā':'阿','á':'啊','ǎ':'啊','à':'阿','ō':'喔','ó':'哦','ǒ':'哦','ò':'哦',
+  'ē':'诶','é':'鹅','ě':'诶','è':'诶','ī':'衣','í':'姨','ǐ':'以','ì':'义',
+  'ū':'乌','ú':'无','ǔ':'五','ù':'物','ǖ':'鱼','ǘ':'鱼','ǚ':'雨','ǜ':'玉',
   'bā':'八','bá':'拔','bǎ':'把','bà':'爸','bō':'波','pō':'坡','pó':'婆','pǒ':'叵',
   'mō':'摸','mó':'模','mǒ':'抹','mò':'墨','fó':'佛','mā':'妈','má':'麻','mǎ':'马','mà':'骂',
   'fā':'发','fá':'罚','fǎ':'法','fà':'发','dā':'搭','dá':'答','dǎ':'打','dà':'大',
@@ -37,7 +32,6 @@ const pinyinMap = {
   'yī':'衣','yí':'姨','yǐ':'以','yì':'义','wū':'乌','wú':'无','wǔ':'五','wù':'物',
   'yū':'淤','yú':'鱼','yǔ':'雨','yù':'玉','yē':'耶','yé':'椰','yě':'也','yè':'叶',
   'yuē':'约','yuè':'月','ér':'儿','ěr':'耳','èr':'二',
-  // 复韵母
   'bái':'白','mǎi':'买','tái':'台','cài':'菜','léi':'雷','méi':'梅','gài':'盖','guī':'归',
   'kuí':'奎','huí':'回','duī':'堆','tuǐ':'腿','pái':'排','wèi':'位','tuī':'推','gěi':'给',
   'fēi':'飞','lài':'赖','lái':'来','nǎi':'奶','něi':'哪','bēi':'杯','bǎo':'宝','táo':'桃',
@@ -76,7 +70,7 @@ function pinyinToToneNumber(py) {
     'ē':'e1','é':'e2','ě':'e3','è':'e4',
     'ī':'i1','í':'i2','ǐ':'i3','ì':'i4',
     'ū':'u1','ú':'u2','ǔ':'u3','ù':'u4',
-    'ǖ':'v1','ǘ':'v2','ǚ':'v3','ǜ':'v4'  // ü 用 v 替代，讯飞标准
+    'ǖ':'v1','ǘ':'v2','ǚ':'v3','ǜ':'v4'
   };
   let result = py;
   for (const [vowel, replacement] of Object.entries(toneMap)) {
@@ -125,7 +119,15 @@ function generateAuthUrl() {
       .update(signatureOrigin)
       .digest('base64');
   const authorization = `api_key="${API_KEY}", algorithm="hmac-sha256", headers="host date request-line", signature="${signature}"`;
-  return `wss://tts-api.xfyun.cn/v2/tts?authorization=${encodeURIComponent(authorization)}&date=${encodeURIComponent(date)}&host=tts-api.xfyun.cn`;
+  const url = `wss://tts-api.xfyun.cn/v2/tts?authorization=${encodeURIComponent(authorization)}&date=${encodeURIComponent(date)}&host=tts-api.xfyun.cn`;
+  
+  // 日志输出（帮助调试）
+  console.log('🔑 APPID:', APPID);
+  console.log('🔑 API_KEY 前4位:', API_KEY ? API_KEY.substring(0,4) : '未设置');
+  console.log('🔑 API_SECRET 前4位:', API_SECRET ? API_SECRET.substring(0,4) : '未设置');
+  console.log('🌐 生成WebSocket URL (前120字符):', url.substring(0, 120) + '...');
+  
+  return url;
 }
 
 // ============================================================
@@ -154,21 +156,22 @@ function createWavHeader(dataLength, sampleRate) {
 // ============================================================
 app.get('/tts', (req, res) => {
   const text = req.query.text || '你好';
-  console.log(`收到发音请求: ${text}`);
+  console.log(`📢 收到发音请求: ${text}`);
 
   if (!APPID || !API_KEY || !API_SECRET) {
-    return res.status(500).send('服务器未配置讯飞密钥，请在 Render 环境变量中设置 APPID, API_KEY, APISECRET');
+    console.error('❌ 环境变量未设置');
+    return res.status(500).send('服务器未配置讯飞密钥，请在环境变量中设置 APPID, API_KEY, APISECRET');
   }
 
   const ttsText = buildPhonemeText(text);
-  console.log('TTS文本:', ttsText);
+  console.log('📝 TTS文本:', ttsText);
 
   const wsUrl = generateAuthUrl();
   const ws = new WebSocket(wsUrl);
   let audioChunks = [];
   let isEnd = false;
   let hasError = false;
-  let responseSent = false;  // ← 关键标记，防止重复发送
+  let responseSent = false;
 
   const sendResponse = (status, message, data) => {
     if (responseSent) return;
@@ -182,6 +185,7 @@ app.get('/tts', (req, res) => {
   };
 
   ws.on('open', () => {
+    console.log('✅ WebSocket 连接已打开');
     const params = {
       common: { app_id: APPID },
       business: {
@@ -204,7 +208,7 @@ app.get('/tts', (req, res) => {
     try {
       const resp = JSON.parse(data);
       if (resp.code !== 0) {
-        console.error('讯飞错误:', resp.code, resp.message);
+        console.error('❌ 讯飞错误码:', resp.code, '消息:', resp.message);
         hasError = true;
         sendResponse(500, '讯飞错误: ' + resp.code + ' ' + resp.message);
         ws.close();
@@ -218,7 +222,7 @@ app.get('/tts', (req, res) => {
         ws.close();
       }
     } catch (e) {
-      console.error('解析响应失败:', e);
+      console.error('❌ 解析响应失败:', e);
       hasError = true;
       sendResponse(500, '解析响应失败');
       ws.close();
@@ -232,6 +236,7 @@ app.get('/tts', (req, res) => {
       return;
     }
     if (isEnd && audioChunks.length > 0) {
+      console.log(`✅ 合成完成，音频大小: ${audioChunks.reduce((s, b) => s + b.length, 0)} 字节`);
       const pcm = Buffer.concat(audioChunks);
       const wav = createWavHeader(pcm.length, 16000);
       sendResponse(200, null, Buffer.concat([wav, pcm]));
@@ -241,7 +246,7 @@ app.get('/tts', (req, res) => {
   });
 
   ws.on('error', (err) => {
-    console.error('WebSocket错误:', err);
+    console.error('❌ WebSocket错误:', err.message);
     hasError = true;
     sendResponse(500, 'WebSocket连接失败: ' + err.message);
     ws.close();
@@ -260,7 +265,7 @@ app.get('/', (req, res) => {
 
 // 测试路由（用于检查服务器是否正常）
 app.get('/test', (req, res) => {
-  res.send('Hello, Render!');
+  res.send('✅ 服务器运行正常！');
 });
 
 // ============================================================
@@ -270,4 +275,5 @@ app.listen(port, () => {
   console.log(`✅ 服务已启动: http://localhost:${port}`);
   console.log(`   - 前端: http://localhost:${port}`);
   console.log(`   - TTS接口: http://localhost:${port}/tts?text=wǒ`);
+  console.log(`   - 测试路由: http://localhost:${port}/test`);
 });
