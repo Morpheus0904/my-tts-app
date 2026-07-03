@@ -1,16 +1,18 @@
 const express = require('express');
 const crypto = require('crypto');
 const WebSocket = require('ws');
+const path = require('path');
+
 const app = express();
 const port = process.env.PORT || 3000;
 
-// 从 Render 环境变量读取密钥（永不硬编码）
+// ===== 从环境变量读取讯飞密钥（Render 中设置） =====
 const APPID = process.env.APPID;
 const API_KEY = process.env.API_KEY;
 const API_SECRET = process.env.APISECRET;
 
 // ============================================================
-// 拼音 → 汉字映射表（覆盖14天所有拼音）
+// 1. 拼音 → 汉字映射表（覆盖14天所有拼音）
 // ============================================================
 const pinyinMap = {
   // 单韵母 & 整体认读
@@ -65,7 +67,7 @@ const pinyinMap = {
 };
 
 // ============================================================
-// 工具函数：带声调拼音 → 数字声调格式 (如 wǒ → wo3)
+// 2. 工具函数：带声调拼音 → 数字声调格式 (如 wǒ → wo3)
 // ============================================================
 function pinyinToToneNumber(py) {
   const toneMap = {
@@ -80,7 +82,6 @@ function pinyinToToneNumber(py) {
   for (const [vowel, replacement] of Object.entries(toneMap)) {
     if (py.includes(vowel)) {
       result = py.replace(vowel, replacement.replace(/\d$/, ''));
-      // 如果替换后没有数字，补上
       if (!result.match(/\d$/)) {
         const num = replacement.match(/\d$/)[0];
         result = result + num;
@@ -88,7 +89,6 @@ function pinyinToToneNumber(py) {
       break;
     }
   }
-  // 如果完全没有声调符号，默认加 5（轻声）
   if (!result.match(/\d$/)) {
     result = result + '5';
   }
@@ -96,20 +96,19 @@ function pinyinToToneNumber(py) {
 }
 
 // ============================================================
-// 构建讯飞 phoneme 标签
+// 3. 构建讯飞 phoneme 标签
 // ============================================================
 function buildPhonemeText(text) {
   const words = text.split(/\s+/);
   let result = '';
   for (const w of words) {
     if (!w) continue;
-    // 移除标点
     const clean = w.replace(/[，。、？！；：""''（）\.,;:!?]/g, '');
     if (!clean) {
-      result += w; // 保留标点
+      result += w;
       continue;
     }
-    const char = pinyinMap[clean] || clean; // 找不到就用拼音本身
+    const char = pinyinMap[clean] || clean;
     const tonePy = pinyinToToneNumber(clean);
     result += `<phoneme py="${tonePy}">${char}</phoneme>`;
   }
@@ -117,7 +116,7 @@ function buildPhonemeText(text) {
 }
 
 // ============================================================
-// 生成讯飞 WebSocket 鉴权 URL
+// 4. 生成讯飞 WebSocket 鉴权 URL
 // ============================================================
 function generateAuthUrl() {
   const date = new Date().toUTCString();
@@ -130,7 +129,7 @@ function generateAuthUrl() {
 }
 
 // ============================================================
-// 生成 WAV 文件头
+// 5. 生成 WAV 文件头
 // ============================================================
 function createWavHeader(dataLength, sampleRate) {
   const header = Buffer.alloc(44);
@@ -151,7 +150,7 @@ function createWavHeader(dataLength, sampleRate) {
 }
 
 // ============================================================
-// API 路由：/tts
+// 6. API 路由：/tts (修正：防止重复发送响应)
 // ============================================================
 app.get('/tts', (req, res) => {
   const text = req.query.text || '你好';
@@ -169,6 +168,18 @@ app.get('/tts', (req, res) => {
   let audioChunks = [];
   let isEnd = false;
   let hasError = false;
+  let responseSent = false;  // ← 关键标记，防止重复发送
+
+  const sendResponse = (status, message, data) => {
+    if (responseSent) return;
+    responseSent = true;
+    if (data) {
+      res.set('Content-Type', 'audio/wav');
+      res.send(data);
+    } else {
+      res.status(status).send(message);
+    }
+  };
 
   ws.on('open', () => {
     const params = {
@@ -177,7 +188,7 @@ app.get('/tts', (req, res) => {
         aue: 'raw',
         auf: 'audio/L16;rate=16000',
         vcn: 'xiaoyan',
-        speed: 40,    // 更慢更清晰
+        speed: 40,
         pitch: 50,
         volume: 50
       },
@@ -195,6 +206,7 @@ app.get('/tts', (req, res) => {
       if (resp.code !== 0) {
         console.error('讯飞错误:', resp.code, resp.message);
         hasError = true;
+        sendResponse(500, '讯飞错误: ' + resp.code + ' ' + resp.message);
         ws.close();
         return;
       }
@@ -208,38 +220,54 @@ app.get('/tts', (req, res) => {
     } catch (e) {
       console.error('解析响应失败:', e);
       hasError = true;
+      sendResponse(500, '解析响应失败');
       ws.close();
     }
   });
 
   ws.on('close', () => {
+    if (responseSent) return;
     if (hasError) {
-      return res.status(500).send('TTS合成错误');
+      sendResponse(500, '合成错误');
+      return;
     }
     if (isEnd && audioChunks.length > 0) {
       const pcm = Buffer.concat(audioChunks);
       const wav = createWavHeader(pcm.length, 16000);
-      res.set('Content-Type', 'audio/wav');
-      res.send(Buffer.concat([wav, pcm]));
+      sendResponse(200, null, Buffer.concat([wav, pcm]));
     } else {
-      res.status(500).send('合成失败或音频为空');
+      sendResponse(500, '合成失败或音频为空');
     }
   });
 
   ws.on('error', (err) => {
     console.error('WebSocket错误:', err);
     hasError = true;
-    res.status(500).send('WebSocket连接失败');
+    sendResponse(500, 'WebSocket连接失败: ' + err.message);
+    ws.close();
   });
 });
 
 // ============================================================
-// 静态文件服务
+// 7. 静态文件服务（使用绝对路径）
 // ============================================================
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
+// 显式处理根路径
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// 测试路由（用于检查服务器是否正常）
+app.get('/test', (req, res) => {
+  res.send('Hello, Render!');
+});
+
+// ============================================================
+// 8. 启动服务器
+// ============================================================
 app.listen(port, () => {
   console.log(`✅ 服务已启动: http://localhost:${port}`);
-  console.log('   - 前端: http://localhost:3000');
-  console.log('   - TTS接口: http://localhost:3000/tts?text=wǒ');
+  console.log(`   - 前端: http://localhost:${port}`);
+  console.log(`   - TTS接口: http://localhost:${port}/tts?text=wǒ`);
 });
