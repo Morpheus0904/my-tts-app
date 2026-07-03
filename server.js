@@ -41,38 +41,41 @@ app.get('/tts', async (req, res) => {
     const text = req.query.text || '你好';
     console.log(`📢 收到发音请求: ${text}`);
 
-    // 检查密钥是否配置
     if (!BAIDU_API_KEY || !BAIDU_SECRET_KEY) {
-        console.error('❌ 环境变量未设置');
-        return res.status(500).send('服务器未配置百度密钥，请在环境变量中设置 BAIDU_API_KEY, BAIDU_SECRET_KEY');
+        return res.status(500).send('服务器未配置百度密钥');
     }
 
     try {
-        // 1. 获取Access Token
         const accessToken = await getBaiduAccessToken();
 
-        // 2. 构建请求参数
         const params = new URLSearchParams();
-        params.append('tex', text);           // 待合成的文本
-        params.append('tok', accessToken);    // 访问令牌
-        params.append('cuid', 'pinyin-app');  // 用户标识，可自定义
-        params.append('ctp', '1');            // 客户端类型，web端固定为1[reference:8]
-        params.append('lan', 'zh');           // 语言，固定为zh[reference:9]
-        params.append('spd', '4');            // 语速，0-15，默认5，调低一些更清晰[reference:10][reference:11]
-        params.append('pit', '5');            // 音调，0-15，默认5[reference:12][reference:13]
-        params.append('vol', '5');            // 音量，0-9或0-15，默认5[reference:14][reference:15]
-        params.append('per', '0');            // 发音人，0为标准女声[reference:16]
-        params.append('aue', '6');            // 音频格式，6为wav[reference:17]
+        params.append('tex', text);
+        params.append('tok', accessToken);
+        params.append('cuid', 'pinyin-app');
+        params.append('ctp', '1');
+        params.append('lan', 'zh');
+        params.append('spd', '3');      // 慢速清晰
+        params.append('pit', '6');      // 明亮
+        params.append('vol', '8');      // 饱满
+        params.append('per', '5');      // 童声
+        params.append('aue', '6');      // WAV
 
-        console.log('📝 百度TTS请求参数:', params.toString());
-
-        // 3. 发送POST请求到百度TTS API[reference:18]
         const response = await axios.post(BAIDU_TTS_URL, params.toString(), {
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            responseType: 'arraybuffer', // 重要：接收二进制音频数据
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            responseType: 'arraybuffer',
         });
+
+        if (response.status === 200) {
+            res.set('Content-Type', 'audio/wav');
+            res.send(response.data);
+        } else {
+            res.status(response.status).send('百度TTS请求失败');
+        }
+    } catch (error) {
+        console.error('❌ TTS错误:', error.message);
+        res.status(500).send('TTS服务异常');
+    }
+});
 
         // 4. 检查响应
         if (response.status === 200) {
